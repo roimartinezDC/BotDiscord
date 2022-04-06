@@ -23,23 +23,25 @@ public class MyBot {
         final DiscordClient client = DiscordClient.create(token);
         final GatewayDiscordClient gateway = client.login().block();
 
-
+        //constructor del embed
         EmbedCreateSpec embed = EmbedCreateSpec.builder()
                 .color(Color.CINNABAR)
                 .title("Bobby")
                 .image("https://i.ytimg.com/vi/M6W9dPBthAU/hqdefault.jpg")
                 .build();
 
-
+        //creacion del evento escuchador de mensajes
         gateway.on(MessageCreateEvent.class).subscribe(event -> {
             final Message message = event.getMessage();
+            //declaracion de los comandos
             if ("!ping".equals(message.getContent())) {
                 final MessageChannel channel = message.getChannel().block();
+                //con esta línea el bot muestra un mensaje con los que sele indica
                 channel.createMessage("Pong!").block();
             }
             if ("!embed".equals(message.getContent())) {
                 final MessageChannel channel = message.getChannel().block();
-
+                //un mensaje del bot con un parámetro diferente (embed)
                 channel.createMessage(MessageCreateSpec.builder()
                         .content("Sigo?")
                         .addEmbed(embed)
@@ -50,6 +52,7 @@ public class MyBot {
 
                 String ruta = "C:\\03.COD\\BotDiscord\\src\\main\\images";
                 File carpeta = new File(ruta);
+                //con File.list() se listan los contenidos del directorio
                 String[] imagenes = carpeta.list();
                 String res = "";
                 for (int i = 0; i < imagenes.length; i++) {
@@ -60,14 +63,15 @@ public class MyBot {
             }
             if (message.getContent().startsWith("/get")) {
                 final MessageChannel channel = message.getChannel().block();
+                //con un substring recojo solo el texto que haya después del comando /get
                 String archivo = message.getContent().substring(5, message.getContent().length());
-
+                //declaracion de un nuevo embed
                 EmbedCreateSpec embed2 = EmbedCreateSpec.builder()
                         .color(Color.BISMARK)
                         .title(archivo.split("\\.")[0])
                         .image("attachment://C:\\03.COD\\BotDiscord\\src\\main\\images\\"+archivo)
                         .build();
-
+                //registramos el archivo que vamos a mostrar en el nuevo embed
                 InputStream fileAsInputStream = null;
                 boolean exists = true;
                 try {
