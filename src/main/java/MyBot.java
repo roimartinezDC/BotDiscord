@@ -169,7 +169,6 @@ public class MyBot {
                             String dirImagenes = null;
                             System.out.println("Files:");
                             for (com.google.api.services.drive.model.File file : files) {
-                                System.out.printf("%s (%s)\n", file.getName(), file.getId());
                                 dirImagenes = file.getId();
                             }
                             //buscar la imagen en el directorio
@@ -181,20 +180,67 @@ public class MyBot {
                             List<com.google.api.services.drive.model.File> filesImagenes = resultImagenes.getFiles();
                             for (com.google.api.services.drive.model.File file : filesImagenes) {
                                 channel.createMessage(file.getName()).block();
-                                String nArchivo;
-                                String ext = null;
-                                if (file.getName().contains(".")) {
-                                    nArchivo = file.getName().split("\\.")[0];
-                                    ext = file.getName().split("\\.")[1];
-                                } else {
-                                    nArchivo = file.getName();
-                                }
                             }
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
 
+                }
+                if (message.getContent().startsWith("/dl")) {
+                    final MessageChannel channel = message.getChannel().block();
+                    FileList result = null;
+                    String archivo = message.getContent().substring(4, message.getContent().length());
+                    try {
+                        result = service.files().list()
+                                .setQ("name contains 'imagenesBOT' AND mimeType = 'application/vnd.google-apps.folder'")
+                                .setSpaces("drive")
+                                .setFields("nextPageToken, files(id, name)")
+                                .execute();
+                        List<com.google.api.services.drive.model.File> files = result.getFiles();
+
+                        if (files == null || files.isEmpty()) {
+                            System.out.println("No files found.");
+                        } else {
+                            String dirImagenes = null;
+                            System.out.println("Files:");
+                            for (com.google.api.services.drive.model.File file : files) {
+                                dirImagenes = file.getId();
+                            }
+
+                            //buscar la imagen en el directorio
+                            FileList resultImagenes = service.files().list()
+                                    .setQ("(mimeType = 'image/png' OR mimeType = 'image/jpeg') AND parents in '" + dirImagenes + "' AND name contains '"+archivo+"'")
+                                    .setSpaces("drive")
+                                    .setFields("nextPageToken, files(id, name)")
+                                    .execute();
+                            List<com.google.api.services.drive.model.File> filesImagenes = resultImagenes.getFiles();
+                            for (com.google.api.services.drive.model.File file : filesImagenes) {
+                                channel.createMessage("Descargado ***"+archivo+"***").block();
+                                String nArch;
+                                String ext = null;
+                                if (file.getName().contains(".")) {
+                                    nArch = file.getName().split("\\.")[0];
+                                    ext = file.getName().split("\\.")[1];
+                                } else {
+                                    nArch = file.getName();
+                                }
+                                // guardamos el 'stream' en un fichero llamado igual que cada imagen
+                                OutputStream outputStream;
+                                if (ext.equals("png")) {
+                                    outputStream = new FileOutputStream("\\Users\\roima\\Downloads\\"+nArch+".png");
+                                } else {
+                                    outputStream = new FileOutputStream("\\Users\\roima\\Downloads\\"+nArch+".jpeg");
+                                }
+                                service.files().get(file.getId())
+                                        .executeMediaAndDownloadTo(outputStream);
+                                outputStream.flush();
+                                outputStream.close();
+                            }
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
             });
             gateway.onDisconnect().block();
