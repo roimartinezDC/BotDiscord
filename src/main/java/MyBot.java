@@ -10,6 +10,7 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
+import com.google.api.services.drive.model.FileList;
 import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.message.MessageCreateEvent;
@@ -73,7 +74,7 @@ public class MyBot {
     public static void main(String[] args) {
         //Utilizamos el DiscordClient, que es la clase necesaria para interacutar con Discord
         //creamos uno con el token de nuestro bot, el cual obtuve en el portal para desarrolladores de Discord, al crear el bot en mi aplicación
-        final String token = "OTUzNjMzMDMyMDg5MjcyMzQw.YjHZ-A.COFNVxvsyfl7kGN2GPNFA5AA608";
+        final String token = "token";
         final DiscordClient client = DiscordClient.create(token);
         final GatewayDiscordClient gateway = client.login().block();
 
@@ -151,8 +152,51 @@ public class MyBot {
                     }
 
                 }
-            });
+                if ("/listdrive".equals((message.getContent()))) {
+                    final MessageChannel channel = message.getChannel().block();
+                    FileList result = null;
+                    try {
+                        result = service.files().list()
+                                .setQ("name contains 'imagenesBOT' AND mimeType = 'application/vnd.google-apps.folder'")
+                                .setSpaces("drive")
+                                .setFields("nextPageToken, files(id, name)")
+                                .execute();
+                        List<com.google.api.services.drive.model.File> files = result.getFiles();
 
+                        if (files == null || files.isEmpty()) {
+                            System.out.println("No files found.");
+                        } else {
+                            String dirImagenes = null;
+                            System.out.println("Files:");
+                            for (com.google.api.services.drive.model.File file : files) {
+                                System.out.printf("%s (%s)\n", file.getName(), file.getId());
+                                dirImagenes = file.getId();
+                            }
+                            //buscar la imagen en el directorio
+                            FileList resultImagenes = service.files().list()
+                                    .setQ("(mimeType = 'image/png' OR mimeType = 'image/jpeg') AND parents in '" + dirImagenes + "'")
+                                    .setSpaces("drive")
+                                    .setFields("nextPageToken, files(id, name)")
+                                    .execute();
+                            List<com.google.api.services.drive.model.File> filesImagenes = resultImagenes.getFiles();
+                            for (com.google.api.services.drive.model.File file : filesImagenes) {
+                                channel.createMessage(file.getName()).block();
+                                String nArchivo;
+                                String ext = null;
+                                if (file.getName().contains(".")) {
+                                    nArchivo = file.getName().split("\\.")[0];
+                                    ext = file.getName().split("\\.")[1];
+                                } else {
+                                    nArchivo = file.getName();
+                                }
+                            }
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            });
             gateway.onDisconnect().block();
         } catch (GeneralSecurityException e) {
             e.printStackTrace();
